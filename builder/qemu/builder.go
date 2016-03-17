@@ -83,30 +83,31 @@ type Config struct {
 	common.ISOConfig    `mapstructure:",squash"`
 	Comm                communicator.Config `mapstructure:",squash"`
 
-	ISOSkipCache    bool       `mapstructure:"iso_skip_cache"`
-	Accelerator     string     `mapstructure:"accelerator"`
-	BootCommand     []string   `mapstructure:"boot_command"`
-	DiskInterface   string     `mapstructure:"disk_interface"`
-	DiskSize        uint       `mapstructure:"disk_size"`
-	DiskCache       string     `mapstructure:"disk_cache"`
-	DiskDiscard     string     `mapstructure:"disk_discard"`
-	SkipCompaction  bool       `mapstructure:"skip_compaction"`
-	DiskCompression bool       `mapstructure:"disk_compression"`
-	FloppyFiles     []string   `mapstructure:"floppy_files"`
-	Format          string     `mapstructure:"format"`
-	Headless        bool       `mapstructure:"headless"`
-	DiskImage       bool       `mapstructure:"disk_image"`
-	MachineType     string     `mapstructure:"machine_type"`
-	NetDevice       string     `mapstructure:"net_device"`
-	OutputDir       string     `mapstructure:"output_directory"`
-	QemuArgs        [][]string `mapstructure:"qemuargs"`
-	QemuBinary      string     `mapstructure:"qemu_binary"`
-	ShutdownCommand string     `mapstructure:"shutdown_command"`
-	SSHHostPortMin  uint       `mapstructure:"ssh_host_port_min"`
-	SSHHostPortMax  uint       `mapstructure:"ssh_host_port_max"`
-	VNCPortMin      uint       `mapstructure:"vnc_port_min"`
-	VNCPortMax      uint       `mapstructure:"vnc_port_max"`
-	VMName          string     `mapstructure:"vm_name"`
+	ISOSkipCache       bool       `mapstructure:"iso_skip_cache"`
+	Accelerator        string     `mapstructure:"accelerator"`
+	BootCommand        []string   `mapstructure:"boot_command"`
+	DiskInterface      string     `mapstructure:"disk_interface"`
+	DiskSize           uint       `mapstructure:"disk_size"`
+	AdditionalDiskSize []uint     `mapstructure:"disk_additional_size"`
+	DiskCache          string     `mapstructure:"disk_cache"`
+	DiskDiscard        string     `mapstructure:"disk_discard"`
+	SkipCompaction     bool       `mapstructure:"skip_compaction"`
+	DiskCompression    bool       `mapstructure:"disk_compression"`
+	FloppyFiles        []string   `mapstructure:"floppy_files"`
+	Format             string     `mapstructure:"format"`
+	Headless           bool       `mapstructure:"headless"`
+	DiskImage          bool       `mapstructure:"disk_image"`
+	MachineType        string     `mapstructure:"machine_type"`
+	NetDevice          string     `mapstructure:"net_device"`
+	OutputDir          string     `mapstructure:"output_directory"`
+	QemuArgs           [][]string `mapstructure:"qemuargs"`
+	QemuBinary         string     `mapstructure:"qemu_binary"`
+	ShutdownCommand    string     `mapstructure:"shutdown_command"`
+	SSHHostPortMin     uint       `mapstructure:"ssh_host_port_min"`
+	SSHHostPortMax     uint       `mapstructure:"ssh_host_port_max"`
+	VNCPortMin         uint       `mapstructure:"vnc_port_min"`
+	VNCPortMax         uint       `mapstructure:"vnc_port_max"`
+	VMName             string     `mapstructure:"vm_name"`
 
 	// These are deprecated, but we keep them around for BC
 	// TODO(@mitchellh): remove

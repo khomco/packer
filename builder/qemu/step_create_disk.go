@@ -17,17 +17,16 @@ func (s *stepCreateDisk) Run(state multistep.StateBag) multistep.StepAction {
 	driver := state.Get("driver").(Driver)
 	ui := state.Get("ui").(packer.Ui)
 	name := config.VMName
-	path := filepath.Join(config.OutputDir, name)
+
+	if config.DiskImage == true {
+		return multistep.ActionContinue
+	}
 
 	command := []string{
 		"create",
 		"-f", config.Format,
-		path,
+		filepath.Join(config.OutputDir, name),
 		fmt.Sprintf("%vM", config.DiskSize),
-	}
-
-	if config.DiskImage == true {
-		return multistep.ActionContinue
 	}
 
 	ui.Say("Creating hard drive...")
@@ -40,6 +39,30 @@ func (s *stepCreateDisk) Run(state multistep.StateBag) multistep.StepAction {
 
 	state.Put("disk_filename", name)
 
+	if len(config.AdditionalDiskSize) > 0 {
+		additionalPaths := make([]string, len(config.AdditionalDiskSize))
+		ui.Say("Creating additional hard drives...")
+
+		for i, additionalsize := range config.AdditionalDiskSize {
+			additionalPath := filepath.Join(config.OutputDir, fmt.Sprintf("%s-%d", name, i+1))
+			command := []string{
+				"create",
+				"-f", config.Format,
+				additionalPath,
+				fmt.Sprintf("%vM", additionalsize),
+			}
+
+			ui.Say("Creating hard drive...")
+			if err := driver.QemuImg(command...); err != nil {
+				err := fmt.Errorf("Error creating hard drive: %s", err)
+				state.Put("error", err)
+				ui.Error(err.Error())
+				return multistep.ActionHalt
+			}
+			additionalPaths[i] = additionalPath
+		}
+		state.Put("additional_disk_filenames", additionalPaths)
+	}
 	return multistep.ActionContinue
 }
 
