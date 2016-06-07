@@ -83,31 +83,32 @@ type Config struct {
 	common.ISOConfig    `mapstructure:",squash"`
 	Comm                communicator.Config `mapstructure:",squash"`
 
-	ISOSkipCache       bool       `mapstructure:"iso_skip_cache"`
-	Accelerator        string     `mapstructure:"accelerator"`
-	BootCommand        []string   `mapstructure:"boot_command"`
-	DiskInterface      string     `mapstructure:"disk_interface"`
-	DiskSize           uint       `mapstructure:"disk_size"`
+	ISOSkipCache    bool       `mapstructure:"iso_skip_cache"`
+	Accelerator     string     `mapstructure:"accelerator"`
+	BootCommand     []string   `mapstructure:"boot_command"`
+	DiskInterface   string     `mapstructure:"disk_interface"`
+	DiskSize        uint       `mapstructure:"disk_size"`
 	AdditionalDiskSize []uint     `mapstructure:"disk_additional_size"`
-	DiskCache          string     `mapstructure:"disk_cache"`
-	DiskDiscard        string     `mapstructure:"disk_discard"`
-	SkipCompaction     bool       `mapstructure:"skip_compaction"`
-	DiskCompression    bool       `mapstructure:"disk_compression"`
-	FloppyFiles        []string   `mapstructure:"floppy_files"`
-	Format             string     `mapstructure:"format"`
-	Headless           bool       `mapstructure:"headless"`
-	DiskImage          bool       `mapstructure:"disk_image"`
-	MachineType        string     `mapstructure:"machine_type"`
-	NetDevice          string     `mapstructure:"net_device"`
-	OutputDir          string     `mapstructure:"output_directory"`
-	QemuArgs           [][]string `mapstructure:"qemuargs"`
-	QemuBinary         string     `mapstructure:"qemu_binary"`
-	ShutdownCommand    string     `mapstructure:"shutdown_command"`
-	SSHHostPortMin     uint       `mapstructure:"ssh_host_port_min"`
-	SSHHostPortMax     uint       `mapstructure:"ssh_host_port_max"`
-	VNCPortMin         uint       `mapstructure:"vnc_port_min"`
-	VNCPortMax         uint       `mapstructure:"vnc_port_max"`
-	VMName             string     `mapstructure:"vm_name"`
+	DiskCache       string     `mapstructure:"disk_cache"`
+	DiskDiscard     string     `mapstructure:"disk_discard"`
+	SkipCompaction  bool       `mapstructure:"skip_compaction"`
+	DiskCompression bool       `mapstructure:"disk_compression"`
+	FloppyFiles     []string   `mapstructure:"floppy_files"`
+	Format          string     `mapstructure:"format"`
+	Headless        bool       `mapstructure:"headless"`
+	DiskImage       bool       `mapstructure:"disk_image"`
+	MachineType     string     `mapstructure:"machine_type"`
+	NetDevice       string     `mapstructure:"net_device"`
+	OutputDir       string     `mapstructure:"output_directory"`
+	QemuArgs        [][]string `mapstructure:"qemuargs"`
+	QemuBinary      string     `mapstructure:"qemu_binary"`
+	ShutdownCommand string     `mapstructure:"shutdown_command"`
+	SSHHostPortMin  uint       `mapstructure:"ssh_host_port_min"`
+	SSHHostPortMax  uint       `mapstructure:"ssh_host_port_max"`
+	VNCBindAddress  string     `mapstructure:"vnc_bind_address"`
+	VNCPortMin      uint       `mapstructure:"vnc_port_min"`
+	VNCPortMax      uint       `mapstructure:"vnc_port_max"`
+	VMName          string     `mapstructure:"vm_name"`
 
 	// These are deprecated, but we keep them around for BC
 	// TODO(@mitchellh): remove
@@ -155,8 +156,20 @@ func (b *Builder) Prepare(raws ...interface{}) ([]string, error) {
 		if runtime.GOOS == "windows" {
 			b.config.Accelerator = "tcg"
 		} else {
-			b.config.Accelerator = "kvm"
+			// /dev/kvm is a kernel module that may be loaded if kvm is
+			// installed and the host supports VT-x extensions. To make sure
+			// this will actually work we need to os.Open() it. If os.Open fails
+			// the kernel module was not installed or loaded correctly.
+			if fp, err := os.Open("/dev/kvm"); err != nil {
+				b.config.Accelerator = "tcg"
+			} else {
+				fp.Close()
+				b.config.Accelerator = "kvm"
+			}
 		}
+		log.Printf("use detected accelerator: %s", b.config.Accelerator)
+	} else {
+		log.Printf("use specified accelerator: %s", b.config.Accelerator)
 	}
 
 	if b.config.MachineType == "" {
@@ -181,6 +194,10 @@ func (b *Builder) Prepare(raws ...interface{}) ([]string, error) {
 
 	if b.config.SSHHostPortMax == 0 {
 		b.config.SSHHostPortMax = 4444
+	}
+
+	if b.config.VNCBindAddress == "" {
+		b.config.VNCBindAddress = "127.0.0.1"
 	}
 
 	if b.config.VNCPortMin == 0 {
@@ -380,15 +397,18 @@ func (b *Builder) Run(ui packer.Ui, hook packer.Hook, cache packer.Cache) (packe
 	state := new(multistep.BasicStateBag)
 	state.Put("cache", cache)
 	state.Put("config", &b.config)
+	state.Put("debug", b.config.PackerDebug)
 	state.Put("driver", driver)
 	state.Put("hook", hook)
 	state.Put("ui", ui)
 
 	// Run
 	if b.config.PackerDebug {
+		pauseFn := common.MultistepDebugFn(ui)
+		state.Put("pauseFn", pauseFn)
 		b.runner = &multistep.DebugRunner{
 			Steps:   steps,
-			PauseFn: common.MultistepDebugFn(ui),
+			PauseFn: pauseFn,
 		}
 	} else {
 		b.runner = &multistep.BasicRunner{Steps: steps}
