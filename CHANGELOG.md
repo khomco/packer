@@ -14,8 +14,10 @@ IMPROVEMENTS:
 
   * builder/amazon: Added `disable_stop_instance` option to prevent automatic
     shutdown when the build is complete [GH-3352]
+  * builder/amazon: Added `skip_region_validation` option to allow newer or custom AWS regions [GH-3598]
   * builder/azure: Now pre-validates `capture_container_name` and
     `capture_name_prefix` [GH-3537]
+  * builder/azure: Support for custom images [GH-3575]
   * builder/google: Added support for `image_family` [GH-3503]
   * builder/null: Can now be used with WinRM [GH-2525]
   * builder/parallels: Now pauses between `boot_command` entries when running
@@ -37,6 +39,7 @@ BUG FIXES:
   * post-processor/vsphere: Fix upload failures with vsphere [GH-3321]
   * provisioner/ansible: Properly set host key checking even when a custom ENV
     is specified [GH-3568]
+  * builder/azure: check for empty resource group [GH-3606]
 
 ## 0.10.1 (May 7, 2016)
 
