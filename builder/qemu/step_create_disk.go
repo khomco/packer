@@ -61,7 +61,7 @@ func (s *stepCreateDisk) Run(state multistep.StateBag) multistep.StepAction {
 			}
 			additionalPaths[i] = additionalPath
 		}
-		state.Put("additional_disk_filenames", additionalPaths)
+		state.Put("additional_disk_paths", additionalPaths)
 	}
 	return multistep.ActionContinue
 }

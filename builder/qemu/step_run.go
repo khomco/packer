@@ -88,15 +88,21 @@ func getCommandArgs(bootDrive string, state multistep.StateBag) ([]string, error
 	if err != nil {
 		return nil, err
 	}
+
+	allDisks := []string{imgPath}
+	if state.Get("additional_disk_paths") != nil {
+		allDisks = append(allDisks, state.Get("additional_disk_paths").([]string)...)
+	}
+
 	if qemuMajor >= 2 {
 		if config.DiskInterface == "virtio-scsi" {
 			deviceArgs = append(deviceArgs, "virtio-scsi-pci,id=scsi0", "scsi-hd,bus=scsi0.0,drive=drive0")
-			driveArgs = append(driveArgs, fmt.Sprintf("if=none,file=%s,id=drive0,cache=%s,discard=%s", imgPath, config.DiskCache, config.DiskDiscard))
+			driveArgs = generateDriveArgs("if=none,file=%s,id=drive0,cache=%s,discard=%s", allDisks, config.DiskCache, config.DiskDiscard)
 		} else {
-			driveArgs = append(driveArgs, fmt.Sprintf("file=%s,if=%s,cache=%s,discard=%s", imgPath, config.DiskInterface, config.DiskCache, config.DiskDiscard))
+			driveArgs = generateDriveArgs("file=%s,if=%s,cache=%s,discard=%s", allDisks, config.DiskInterface, config.DiskCache, config.DiskDiscard)
 		}
 	} else {
-		driveArgs = append(driveArgs, fmt.Sprintf("file=%s,if=%s,cache=%s", imgPath, config.DiskInterface, config.DiskCache))
+		driveArgs = generateDriveArgs("file=%s,if=%s,cache=%s", allDisks, config.DiskInterface, config.DiskCache)
 	}
 	deviceArgs = append(deviceArgs, fmt.Sprintf("%s,netdev=user.0", config.NetDevice))
 
@@ -128,6 +134,7 @@ func getCommandArgs(bootDrive string, state multistep.StateBag) ([]string, error
 
 	defaultArgs["-device"] = deviceArgs
 	defaultArgs["-drive"] = driveArgs
+	ui.Message(fmt.Sprintf("Default Args for %s = %s", "-drive", defaultArgs["-drive"]))
 
 	if !config.DiskImage {
 		defaultArgs["-cdrom"] = isoPath
@@ -212,6 +219,20 @@ func getCommandArgs(bootDrive string, state multistep.StateBag) ([]string, error
 	}
 
 	return outArgs, nil
+}
+
+func generateDriveArgs(optionString string, disks []string, args ...string) []string {
+		var driveArgs []string
+		for _, disk := range disks {
+			argVals := make([]interface{}, len(args) + 1)
+			argVals[0] = disk
+			for i, v := range args {
+				argVals[i + 1] = v
+			}
+			config := fmt.Sprintf(optionString, argVals...)
+			driveArgs = append(driveArgs, config)
+		}
+		return driveArgs
 }
 
 func processArgs(args [][]string, ctx *interpolate.Context) ([][]string, error) {
